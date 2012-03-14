@@ -1,4 +1,14 @@
-﻿package de.mojjo.utils 
+/*
+	Copyright (c) 2010, Mojjo.de Digital Interactive Ltda
+	All rights reserved.
+  
+
+	VERSION: 0.?.1	
+	CRIATION: 20??-??-??
+	MODIFIED: 2011-02-12
+*/
+
+package de.mojjo.utils 
 {
 	import de.mojjo.utils.UniqueID;
 	
@@ -6,23 +16,19 @@
 	import flash.events.Event;
 	import flash.events.MouseEvent;
 	
+	import flash.system.System;
+	
 	public class EventStore
 	{
 		
-		private var events:Vector.<Object>;
-		private var eventsGroup:Vector.<Object>;
+		private var events:Vector.<Object> = new Vector.<Object>();
+		private var eventsGroup:Vector.<Object> = new Vector.<Object>();
 		
-		private var eventsPaused:Vector.<Object>;
-		private var eventsGroupPaused:Vector.<Object>;
+		private var eventsPaused:Vector.<Object> = new Vector.<Object>();
+		private var eventsGroupPaused:Vector.<Object> = new Vector.<Object>();
 		
-		public function EventStore()
-		{ 
-			events = new Vector.<Object>();
-			eventsGroup = new Vector.<Object>();
-			
-			eventsPaused = new Vector.<Object>();
-			eventsGroupPaused = new Vector.<Object>();
-		};
+		public var vars:Vars = new Vars();
+		public function EventStore() { };
 		
 		/**
 		 * Cria um simples evento que pode ser adicionado a um grupo. Se o grupo e/ou id não existir(em), será(ão) criado(s) automaticamente.
@@ -33,11 +39,8 @@
 		 * @param vars Objeto contendo variáveis opcionais, como: id, group, buttonMode, tabEnabled, mouseChildren...
 		 */
 		
-		public function addEvent(obj:Object, event:String, func:Function, vars:Object = null):void 
+		public function addEvent(obj:*, event:*, func:Function, vars:Object = null):void 
 		{
-			if (obj == null)
-				throw new Error ("Não pode adicionar um evento à um objeto nulo");
-			
 			var group:String = (vars && vars.group != null && vars.group != "") ? vars.group : "untitledGroup";
 
 			
@@ -75,47 +78,22 @@
 			if(!hasEvent)
 			{
 				obj.addEventListener(event, func, false, 0, true);
-				events[eventsLength] = { obj:obj, event:event, func:func, vars:vars };
-				
+				events[eventsLength] = { obj:obj, event:event, func:func, vars:{group:group, id:id} };
+				//change?->to do!
 				for (var n:* in vars)
 				{
 					if(vars[n] != group && vars[n] != id)
 					{
-						if(obj.hasOwnProperty(n)) obj[n] = vars[n];
+						obj[n] = vars[n];
 					}
 				}
 			}
 			else
 			{
-				trace("O evento não pôde ser adicionado, já existe um evento com este ID:" + id);
-				//throw new Error ("O evento não pôde ser adicionado, por já existir um evento com este ID:" + id);
+				throw new Error ("O evento não pôde ser adicionado, por já existir um evento com este ID:" + id);
 			}
 		}
 		
-		
-		public function getEvent (id:String, obj:Object = null, event:String = null):Object
-		{
-			var eventsLen:int = events.length;
-			
-			if (id)
-			{
-				for (var i:int = 0; i < eventsLen; i++) 
-				{
-					if (events[i].id == id)
-						return events[i];
-				}
-			}
-			else if (obj && event)
-			{
-				for (i = 0; i < eventsLen; i++) 
-				{
-					if (events[i].obj == obj && events[i].event == event)
-						return events[i];
-				}
-			}
-			
-			return null;
-		}
 		
 		
 		// UM
@@ -183,37 +161,47 @@
 					{
 						addEvent(eventsPaused[i].obj, eventsPaused[i].event, eventsPaused[i].func, eventsPaused[i].vars);
 						eventsPaused.splice(i, 1);
+						//eventsPausedLength-- ????? true or false? =P
 						break;
 					}
 			}
 			else
-			{
-				var eventsLength:int = events.length;
+			{	
+				var obj:*
+				var _vars:Object
+				//N Nao Ne XD
+				var n:*
+				
+				var eventsLength:uint = events.length;
 				for (i = 0; i < eventsLength; i++) 
 					if (events[i].vars.id == id)
 					{
-						var obj:* = events[i].obj;
+						obj = events[i].obj;
 						
 						// removendo propriedades, normalmente ( tabEnabled, buttonMode e mouseChildren )
 						// deixei tudo false, se precisar de um valor diferente, terá que fazer manualmente após a remoção do evento.
 						
-						//var _vars:Object = events[i].vars;
-						//for (var n:* in _vars)
-						//{
-							//if(_vars[n] != _vars.group && _vars[n] != _vars.id)
-							//{
-								//if(obj.hasOwnProperty(n)) obj[n] = false;
-							//}
-						//}
+						_vars = events[i].vars;
+						for (n in _vars)
+						{
+							if(_vars[n] != _vars.group && _vars[n] != _vars.id)
+							{
+								obj[n] = false;
+							}
+						}
 							
 						if (action == 1)
-								eventsPaused[eventsPaused.length] = events[i];
-							
+						{
+							eventsPaused[eventsPaused.length] = events[i];
+						}	
 						obj.removeEventListener(events[i].event, events[i].func);
 						events.splice(i, 1);
+						//eventsLength-- ????? true or false? =P
 						break;
 					}
 			}
+			
+			System.gc();			
 		}
 		
 		
@@ -229,6 +217,7 @@
 			// resumir
 			if (action == 2)
 			{
+				var eventsPausedLength:int ;
 				// verificar todos os grupos
 				var eventsGroupPausedLength:int = eventsGroupPaused.length;
 				for (var i:int = 0; i < eventsGroupPausedLength; i++)
@@ -237,7 +226,7 @@
 					if (eventsGroupPaused[i] == group)
 					{
 						// procura todos os eventos pausados relativos a ele
-						var eventsPausedLength:int = eventsPaused.length - 1;
+						eventsPausedLength= eventsPaused.length - 1;
 						for (var j:int = eventsPausedLength; j >= 0; j--) 
 						{
 							// se o evento for do grupo
@@ -252,7 +241,7 @@
 			}
 			else
 			{
-				// talvez precise ser usada depois
+				var eventsLength:int;
 				var hasGroup:Boolean = false;
 				// verifica cada grupo de eventos
 				var eventsGroupLength:int = eventsGroup.length;
@@ -262,7 +251,7 @@
 					if (eventsGroup[i] == group)
 					{
 						// verifica todos os eventos
-						var eventsLength:int = events.length - 1;
+						eventsLength = events.length - 1;
 						for (j = eventsLength; j >= 0; j--) 
 						{
 							// para os eventos relativos ao grupo
@@ -278,6 +267,7 @@
 							eventsGroupPaused[eventsGroupPaused.length] = eventsGroup[i];
 						// remove o grupo dos grupo de eventos ativos
 						eventsGroup.splice(i, 1);
+						//eventsGroupLength-- ????? true or false? =P
 						// mostra que o grupo foi encontrado
 						hasGroup = true;
 						break;
@@ -288,3 +278,24 @@
 	}
 
 }
+
+class Vars
+{
+	private var _group:String = "";
+	public var id:uint = 0
+	public function Vars()
+	{
+	}
+	
+	public function get group ():String
+	{
+		return _group;
+	}
+	public function set group ($group:String):void
+	{
+		 _group = $group
+		 id++;
+	}
+	
+}
+	
